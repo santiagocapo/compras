@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La compra</title>
+<meta name="theme-color" content="#2F7D4F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="La compra">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF3EC; --surface:#FFFFFF; --ink:#18241D; --muted:#5E6E64; --line:#D3DDD4;
+  --green:#2F7D4F; --on-green:#FFFFFF; --lemon:#F2C230; --lemon-soft:#FFF4CC; --danger:#B3261E;
+  --font:"Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --tabs-h:64px;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121A15; --surface:#1B241E; --ink:#E6EEE8; --muted:#9AAAA0; --line:#2C3A31;
+    --green:#4FA872; --on-green:#0E1511; --lemon-soft:#3A3217; --danger:#F2857D;}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
+  -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent}
+body{min-height:100dvh}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* Pantallas de acceso y configuración */
+.screen{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 32px) 24px calc(env(safe-area-inset-bottom) + 32px);max-width:480px;margin:0 auto}
+.screen h1{font-size:44px;line-height:1;letter-spacing:-.02em;font-weight:800;margin:0 0 12px;color:var(--green)}
+.screen p{color:var(--muted);line-height:1.45;margin:0 0 24px}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px 18px;font-weight:650;font-size:17px}
+.btn.primary{background:var(--green);color:var(--on-green)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line)}
+.screen details{margin-top:18px}
+.screen summary{color:var(--muted);padding:8px 0}
+.screen form{display:grid;gap:10px;margin-top:10px}
+.err{color:var(--danger);min-height:1.4em;margin-top:14px!important}
+
+/* Cabecera */
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+  padding:calc(env(safe-area-inset-top) + 14px) 20px 12px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.top h1{margin:0;font-size:34px;line-height:1;font-weight:800;letter-spacing:-.02em}
+.top p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.avatar{width:40px;height:40px;border-radius:50%;border:0;background:var(--green);color:var(--on-green);font-weight:750;font-size:17px;flex:none}
+.offline{margin:0 20px 8px;padding:8px 12px;border-radius:10px;background:var(--lemon-soft);font-size:14px}
+
+main{padding:4px 16px calc(var(--tabs-h) + env(safe-area-inset-bottom) + 96px);max-width:640px;margin:0 auto}
+
+/* Etiquetas de categoría: tipo etiqueta de caja de mercado */
+.cat{margin:22px 0 8px}
+.tag{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 8px;border-radius:8px 18px 18px 8px;
+  background:color-mix(in srgb,var(--c) 22%,var(--surface));border-left:5px solid var(--c);font-weight:700;font-size:15px}
+.tag .n{font-weight:500;color:var(--muted)}
+ul{list-style:none;margin:0;padding:0;background:var(--surface);border-radius:14px;overflow:hidden}
+li{display:flex;align-items:center;gap:12px;padding:11px 14px;min-height:56px;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+.body{flex:1;min-width:0;background:none;border:0;text-align:left;padding:2px 0}
+.name{font-size:17px;font-weight:560;
+  background:linear-gradient(currentColor,currentColor) 0 58%/0 2px no-repeat;transition:background-size .28s ease,color .28s}
+.qty{margin-left:6px;font-weight:700;color:var(--green)}
+.meta{display:block;font-size:13.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who{font-size:12.5px;color:var(--muted);flex:none}
+.check{width:30px;height:30px;border-radius:50%;border:2px solid var(--green);background:transparent;flex:none;display:grid;place-items:center;padding:0}
+.check svg{width:16px;height:16px;opacity:0;transition:opacity .2s}
+li.done .check{background:var(--green)}
+li.done .check svg{opacity:1}
+li.done .name{background-size:100% 2px;color:var(--muted)}
+.add{width:36px;height:36px;border-radius:50%;border:0;background:var(--green);color:var(--on-green);font-size:24px;line-height:1;flex:none}
+.pill{font-size:13px;color:var(--green);border:1.5px solid currentColor;border-radius:99px;padding:3px 10px;flex:none}
+
+.banner{display:flex;align-items:center;gap:12px;margin:10px 0 4px;padding:12px 14px;border-radius:14px;background:var(--lemon-soft);border:0;width:100%;text-align:left}
+.banner b{display:block}
+.banner span{font-size:14px;color:var(--muted)}
+.banner .go{margin-left:auto;font-weight:700;color:var(--green);flex:none}
+
+.sug-head{display:flex;align-items:baseline;justify-content:space-between;margin:18px 2px 8px}
+.sug-head h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.sug-head button{border:0;background:none;color:var(--green);font-weight:700;padding:6px 0}
+.sug ul{border:2px solid var(--lemon)}
+
+.search{width:100%;margin:6px 0 4px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:16px}
+.empty{text-align:center;color:var(--muted);padding:56px 24px;line-height:1.5}
+.empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:6px}
+
+/* Botón añadir y pestañas */
+#fab{position:fixed;right:20px;bottom:calc(var(--tabs-h) + env(safe-area-inset-bottom) + 16px);z-index:6;width:62px;height:62px;border-radius:20px;border:0;
+  background:var(--green);color:var(--on-green);font-size:34px;line-height:1;box-shadow:0 8px 20px -6px color-mix(in srgb,var(--green) 70%,transparent)}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;height:var(--tabs-h);border:0;background:none;font-size:16px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+.tabs button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--green)}
+.badge{background:var(--lemon);color:#18241D;border-radius:99px;font-size:12px;font-weight:800;padding:1px 7px}
+
+/* Hoja inferior */
+#sheet-bg{position:fixed;inset:0;z-index:20;background:rgba(10,20,14,.4);opacity:0;pointer-events:none;transition:opacity .2s}
+#sheet-bg.open{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:640px;margin:0 auto;max-height:92dvh;overflow:auto;
+  background:var(--surface);border-radius:22px 22px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 20px);
+  transform:translateY(105%);transition:transform .26s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+#sheet.open{transform:none;visibility:visible}
+.grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+#sheet h2{margin:0 0 14px;font-size:24px;font-weight:800}
+.f{display:block;margin-bottom:12px;font-size:14px;color:var(--muted);font-weight:600}
+.f input,.f select{display:block;width:100%;margin-top:5px;padding:12px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:17px;color:var(--ink);font-weight:450}
+.row2{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.matches{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 12px}
+.matches button{border:1.5px dashed var(--green);background:none;color:var(--green);border-radius:99px;padding:6px 12px;font-size:14px;font-weight:600}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);font-weight:600}
+.switch input{appearance:none;width:52px;height:32px;border-radius:99px;background:var(--line);position:relative;transition:background .2s;margin:0}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.switch input:checked{background:var(--green)}
+.switch input:checked::after{transform:translateX(20px)}
+fieldset{border:0;padding:0;margin:0 0 14px}
+legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0}
+.seg span{display:block;text-align:center;padding:10px 2px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-weight:600}
+.seg input:checked + span{background:var(--green);border-color:var(--green);color:var(--on-green)}
+.seg input:focus-visible + span{outline:3px solid var(--lemon)}
+.actions{display:grid;grid-template-columns:1fr 1.6fr;gap:10px;margin-top:6px}
+.danger{display:flex;gap:10px;margin-top:16px}
+.danger button{flex:1;border:0;background:none;color:var(--danger);font-weight:600;padding:10px}
+
+#toast{position:fixed;left:16px;right:16px;bottom:calc(var(--tabs-h) + env(safe-area-inset-bottom) + 92px);z-index:30;max-width:520px;margin:0 auto;
+  display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:15px}
+#toast button{margin-left:auto;border:0;background:none;color:var(--lemon);font-weight:750;padding:4px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section id="v-config" class="screen" hidden>
+  <h1>Falta un paso</h1>
+  <p>La app aún no está conectada a Firebase. Abre <strong>index.html</strong>, busca el bloque «CONFIGURACIÓN» al principio del código y pega los datos de tu proyecto y los dos correos.</p>
+</section>
+
+<section id="v-login" class="screen" hidden>
+  <h1>La compra</h1>
+  <p>Entrad con vuestra cuenta para ver y editar la lista compartida.</p>
+  <button class="btn primary" id="btn-google">Entrar con Google</button>
+  <details>
+    <summary>Entrar con correo y contraseña</summary>
+    <form id="f-login">
+      <input class="search" type="email" id="l-email" placeholder="Correo" autocomplete="username" required>
+      <input class="search" type="password" id="l-pass" placeholder="Contraseña" autocomplete="current-password" required>
+      <button class="btn ghost" type="submit">Entrar</button>
+    </form>
+  </details>
+  <p class="err" id="login-err"></p>
+</section>
+
+<section id="v-main" hidden>
+  <header class="top">
+    <div><h1 id="title">La compra</h1><p id="subtitle"></p></div>
+    <button class="avatar" id="btn-user" aria-label="Cuenta"></button>
+  </header>
+  <div class="offline" id="offline" hidden>Sin conexión. Los cambios se guardan en el móvil y se sincronizan al volver.</div>
+  <main>
+    <div id="tab-lista"></div>
+    <div id="tab-hab" hidden>
+      <input class="search" id="search" type="search" placeholder="Buscar en habituales" autocomplete="off">
+      <div id="hab-content"></div>
+    </div>
+  </main>
+  <button id="fab" aria-label="Añadir producto">+</button>
+  <nav class="tabs">
+    <button data-tab="lista" class="on">Lista</button>
+    <button data-tab="hab">Habituales <span class="badge" id="badge" hidden></span></button>
+  </nav>
+</section>
+
+<div id="sheet-bg"></div>
+<form id="sheet" autocomplete="off">
+  <div class="grip"></div>
+  <h2 id="sh-title">Añadir producto</h2>
+  <label class="f">Producto<input id="f-name" required maxlength="60" enterkeyhint="done"></label>
+  <div class="matches" id="f-matches"></div>
+  <label class="f">Categoría<select id="f-cat"></select></label>
+  <div class="row2">
+    <label class="f">Cantidad<input id="f-qty" maxlength="20" placeholder="2, 1 kg"></label>
+    <label class="f">Nota<input id="f-note" maxlength="80" placeholder="Marca, tamaño"></label>
+  </div>
+  <label class="switch"><span>Producto habitual</span><input type="checkbox" id="f-rec"></label>
+  <fieldset id="f-freq">
+    <legend>¿Cada cuánto suele hacer falta?</legend>
+    <div class="seg">
+      <label><input type="radio" name="freq" value="semanal"><span>Semanal</span></label>
+      <label><input type="radio" name="freq" value="quincenal"><span>Quincenal</span></label>
+      <label><input type="radio" name="freq" value="mensual"><span>Mensual</span></label>
+      <label><input type="radio" name="freq" value="" checked><span>No sé</span></label>
+    </div>
+  </fieldset>
+  <div class="actions">
+    <button type="button" class="btn ghost" id="sh-cancel">Cancelar</button>
+    <button type="submit" class="btn primary" id="sh-save">Añadir a la lista</button>
+  </div>
+  <div class="danger" id="sh-danger">
+    <button type="button" id="sh-remove">Quitar de la lista</button>
+    <button type="button" id="sh-delete">Borrar producto</button>
+  </div>
+</form>
+
+<div id="toast" hidden role="status"><span id="toast-msg"></span><button id="toast-undo">Deshacer</button></div>
+
+<script type="module">
+/* =====================  CONFIGURACIÓN  =====================
+   // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDWeQwDQQKeDEtxUGiPQN-N_Ge3HzAJY0o",
+  authDomain: "lista-de-la-compra-fd066.firebaseapp.com",
+  projectId: "lista-de-la-compra-fd066",
+  storageBucket: "lista-de-la-compra-fd066.firebasestorage.app",
+  messagingSenderId: "841838013657",
+  appId: "1:841838013657:web:8cadb0867555de9daf22c8"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+   1) Pega aquí el objeto firebaseConfig de tu proyecto
+      (Firebase > Configuración del proyecto > Tus apps > Web).
+   2) Escribe los dos correos, en minúsculas, y el nombre que se mostrará. */
+const firebaseConfig = {
+  apiKey: "AIzaSyDWeQwDQQKeDEtxUGiPQN-N_Ge3HzAJY0o",
+  authDomain: "lista-de-la-compra-fd066.firebaseapp.com",
+  projectId: "lista-de-la-compra-fd066",
+  storageBucket: "lista-de-la-compra-fd066.firebasestorage.app",
+  messagingSenderId: "841838013657",
+  appId: "1:841838013657:web:8cadb0867555de9daf22c8"
+};
+const USUARIOS = {
+  "santiagocapo@gmail.com": "Santi",
+  "olimpiamadridtaverner@gmail.com": "Olimpia"
+};
+/* =========================================================== */
+
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+const $ = s => document.querySelector(s);
+
+const CATS = [
+  {id:"carniceria", n:"Carnicería", e:"🥩", c:"#C2474A"},
+  {id:"pescaderia", n:"Pescadería", e:"🐟", c:"#3C7FB0"},
+  {id:"fruta",      n:"Frutas y verduras", e:"🥬", c:"#4E9A45"},
+  {id:"panaderia",  n:"Panadería, repostería y cereales", e:"🥖", c:"#C08A3E"},
+  {id:"pasta",      n:"Pasta, arroz y legumbres", e:"🍝", c:"#D0A020"},
+  {id:"aceites",    n:"Aceites, salsas y condimentos", e:"🫒", c:"#7D8B2E"},
+  {id:"conservas",  n:"Conservas y latas", e:"🥫", c:"#B5562F"},
+  {id:"lacteos",    n:"Lácteos y huevos", e:"🥚", c:"#8FA6B8"},
+  {id:"cuidado",    n:"Cuidado personal y salud", e:"🧴", c:"#9A6FB0"},
+  {id:"hogar",      n:"Artículos para el hogar", e:"🧽", c:"#3E9A93"},
+  {id:"bebidas",    n:"Vino, cerveza y licores", e:"🍷", c:"#8E3553"},
+];
+const FREQ = {semanal:{d:7,n:"Semanal"}, quincenal:{d:14,n:"Quincenal"}, mensual:{d:30,n:"Mensual"}};
+const DAY = 864e5;
+
+let auth, db, api = {}, me = null, items = [], tab = "lista", editId = null, unsub = null;
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const norm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const ms = t => t ? (t.toMillis ? t.toMillis() : +t) : null;
+const catOf = id => CATS.find(c => c.id === id) || CATS[CATS.length - 1];
+const byName = (a, b) => a.name.localeCompare(b.name, "es", {sensitivity:"base"});
+
+function show(id){ for (const v of ["#v-config","#v-login","#v-main"]) $(v).hidden = v !== id; }
+
+function ago(t){
+  const m = ms(t); if (!m) return "sin comprar aún";
+  const d = Math.floor((Date.now() - m) / DAY);
+  return d <= 0 ? "comprado hoy" : d === 1 ? "comprado ayer" : `comprado hace ${d} días`;
+}
+function suggestions(){
+  return items.filter(i => i.recurring && !i.onList && FREQ[i.freq] && ms(i.lastBought) &&
+    (Date.now() - ms(i.lastBought)) / DAY >= FREQ[i.freq].d - 1).sort(byName);
+}
+
+/* ---------- Arranque ---------- */
+async function boot(){
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("PEGA")) return show("#v-config");
+  const [{initializeApp}, A, F] = await Promise.all([
+    import(FB + "firebase-app.js"), import(FB + "firebase-auth.js"), import(FB + "firebase-firestore.js")
+  ]);
+  api = {...A, ...F};
+  const app = initializeApp(firebaseConfig);
+  auth = A.getAuth(app);
+  try {
+    db = F.initializeFirestore(app, {localCache: F.persistentLocalCache({tabManager: F.persistentSingleTabManager()})});
+  } catch { db = F.getFirestore(app); }
+
+  A.onAuthStateChanged(auth, user => {
+    if (unsub) { unsub(); unsub = null; }
+    if (!user) { me = null; return show("#v-login"); }
+    const email = (user.email || "").toLowerCase();
+    if (!USUARIOS[email]) {
+      $("#login-err").textContent = `La cuenta ${email} no tiene acceso a esta lista.`;
+      A.signOut(auth); return;
+    }
+    me = {uid: user.uid, email, name: USUARIOS[email]};
+    $("#btn-user").textContent = me.name.charAt(0).toUpperCase();
+    show("#v-main");
+    listen();
+  });
+}
+
+function listen(){
+  const {collection, onSnapshot} = api;
+  unsub = onSnapshot(collection(db, "items"), snap => {
+    items = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    render();
+  }, err => {
+    $("#tab-lista").innerHTML = `<div class="empty"><b>No se puede leer la lista</b>${esc(err.code === "permission-denied"
+      ? "Revisa que los dos correos estén bien escritos en las reglas de Firestore." : err.message)}</div>`;
+  });
+}
+
+/* ---------- Pintado ---------- */
+function render(){
+  const pending = items.filter(i => i.onList);
+  const sug = suggestions();
+  $("#subtitle").textContent = pending.length ? `${pending.length} ${pending.length === 1 ? "producto pendiente" : "productos pendientes"}` : "Lista vacía";
+  $("#badge").hidden = !sug.length; $("#badge").textContent = sug.length;
+  renderList(pending, sug);
+  renderHab(sug);
+}
+
+function catBlock(cat, rows, count){
+  return `<section class="cat"><h2 class="tag" style="--c:${cat.c}"><span aria-hidden="true">${cat.e}</span>${esc(cat.n)} <span class="n">${count}</span></h2></section><ul>${rows}</ul>`;
+}
+const CHECK = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--on-green)"/></svg>`;
+
+function renderList(pending, sug){
+  let html = "";
+  if (sug.length){
+    const names = sug.slice(0, 2).map(i => i.name).join(", ") + (sug.length > 2 ? ` y ${sug.length - 2} más` : "");
+    html += `<button class="banner" data-go="hab"><div><b>Quizá os falte</b><span>${esc(names)}</span></div><span class="go">Ver</span></button>`;
+  }
+  if (!pending.length){
+    html += `<div class="empty"><b>No hay nada pendiente</b>Pulsa + para añadir un producto o repasa vuestros habituales.</div>`;
+  } else {
+    for (const cat of CATS){
+      const list = pending.filter(i => catOf(i.category).id === cat.id).sort(byName);
+      if (!list.length) continue;
+      html += catBlock(cat, list.map(i => `
+        <li data-id="${i.id}">
+          <button class="check" data-act="buy" aria-label="Marcar ${esc(i.name)} como comprado">${CHECK}</button>
+          <button class="body" data-act="edit">
+            <span class="name">${esc(i.name)}</span>${i.qty ? `<span class="qty">${esc(i.qty)}</span>` : ""}
+            ${i.note ? `<span class="meta">${esc(i.note)}</span>` : ""}
+          </button>
+          ${i.addedByName ? `<span class="who">${esc(i.addedByName)}</span>` : ""}
+        </li>`).join(""), list.length);
+    }
+  }
+  $("#tab-lista").innerHTML = html;
+}
+
+function habRow(i){
+  const f = FREQ[i.freq] ? FREQ[i.freq].n + ", " : "";
+  return `<li data-id="${i.id}">
+    <button class="body" data-act="edit"><span class="name">${esc(i.name)}</span>
+      <span class="meta">${esc(f + ago(i.lastBought))}</span></button>
+    ${i.onList ? `<span class="pill">En la lista</span>`
+      : `<button class="add" data-act="add" aria-label="Añadir ${esc(i.name)} a la lista">+</button>`}
+  </li>`;
+}
+
+function renderHab(sug){
+  const q = norm($("#search").value);
+  const hab = items.filter(i => i.recurring && (!q || norm(i.name).includes(q)));
+  let html = "";
+  if (!items.some(i => i.recurring)){
+    html = `<div class="empty"><b>Aún no tenéis habituales</b>Al añadir un producto, activa «Producto habitual» y aparecerá aquí para añadirlo con un toque cada semana.</div>`;
+  } else {
+    if (sug.length && !q){
+      html += `<div class="sug"><div class="sug-head"><h2>Quizá os falte…</h2><button data-act="addall">Añadir todos</button></div><ul>${sug.map(habRow).join("")}</ul></div>`;
+    }
+    for (const cat of CATS){
+      const list = hab.filter(i => catOf(i.category).id === cat.id).sort(byName);
+      if (list.length) html += catBlock(cat, list.map(habRow).join(""), list.length);
+    }
+    if (q && !hab.length) html += `<div class="empty"><b>Sin resultados</b>Ningún habitual contiene «${esc($("#search").value)}».</div>`;
+  }
+  $("#hab-content").innerHTML = html;
+}
+
+/* ---------- Acciones sobre los datos ---------- */
+const col = () => api.collection(db, "items");
+const ref = id => api.doc(db, "items", id);
+const stamp = () => ({addedBy: me.uid, addedByName: me.name, addedAt: api.serverTimestamp()});
+
+function buy(item, li){
+  li.classList.add("done");
+  setTimeout(async () => {
+    const {id, ...data} = item;
+    if (item.recurring){
+      await api.updateDoc(ref(id), {onList: false, lastBought: api.Timestamp.now()});
+      toast(`${item.name} comprado`, () => api.updateDoc(ref(id), {onList: true, lastBought: item.lastBought ?? null}));
+    } else {
+      await api.deleteDoc(ref(id));
+      toast(`${item.name} comprado`, () => api.setDoc(ref(id), data));
+    }
+  }, 380);
+}
+function addToList(item){
+  api.updateDoc(ref(item.id), {onList: true, ...stamp()});
+  toast(`${item.name} añadido a la lista`);
+}
+
+/* ---------- Hoja de añadir / editar ---------- */
+function freqValue(){ return document.querySelector('input[name="freq"]:checked')?.value || ""; }
+function syncFreq(){ $("#f-freq").hidden = !$("#f-rec").checked; }
+
+function openSheet(item){
+  editId = item?.id || null;
+  const catalogo = !item && tab === "hab";
+  $("#sheet").dataset.mode = item ? "edit" : (catalogo ? "catalogo" : "add");
+  $("#sh-title").textContent = item ? "Editar producto" : (catalogo ? "Nuevo habitual" : "Añadir producto");
+  $("#sh-save").textContent = item ? "Guardar cambios" : (catalogo ? "Guardar habitual" : "Añadir a la lista");
+  $("#f-name").value = item?.name || "";
+  $("#f-cat").value = item ? catOf(item.category).id : ($("#f-cat").dataset.last || CATS[0].id);
+  $("#f-qty").value = item?.qty || "";
+  $("#f-note").value = item?.note || "";
+  $("#f-rec").checked = item ? !!item.recurring : catalogo;
+  document.querySelector(`input[name="freq"][value="${item?.freq || ""}"]`).checked = true;
+  syncFreq();
+  $("#f-matches").innerHTML = "";
+  $("#sh-danger").hidden = !item;
+  $("#sh-remove").hidden = !item?.onList;
+  $("#sheet-bg").classList.add("open"); $("#sheet").classList.add("open");
+  if (!item) setTimeout(() => $("#f-name").focus(), 260);
+}
+function closeSheet(){
+  $("#sheet-bg").classList.remove("open"); $("#sheet").classList.remove("open");
+  document.activeElement?.blur(); editId = null;
+}
+
+function showMatches(){
+  const q = norm($("#f-name").value);
+  if (editId || q.length < 2){ $("#f-matches").innerHTML = ""; return; }
+  const found = items.filter(i => norm(i.name).includes(q)).sort(byName).slice(0, 4);
+  $("#f-matches").innerHTML = found.map(i =>
+    `<button type="button" data-id="${i.id}">${i.onList ? "Ya en la lista: " : "Usar "}${esc(i.name)}</button>`).join("");
+}
+
+async function save(e){
+  e.preventDefault();
+  const name = $("#f-name").value.trim().replace(/\s+/g, " ");
+  if (!name) return;
+  const mode = $("#sheet").dataset.mode;
+  const recurring = $("#f-rec").checked;
+  const fields = {
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    category: $("#f-cat").value, qty: $("#f-qty").value.trim(), note: $("#f-note").value.trim(),
+    recurring, freq: recurring ? (freqValue() || null) : null
+  };
+  $("#f-cat").dataset.last = fields.category;
+  const id = editId; closeSheet();
+
+  if (mode === "edit"){
+    const item = items.find(i => i.id === id); if (!item) return;
+    if (!recurring && !item.onList){ await api.deleteDoc(ref(id)); return toast(`${fields.name} ya no es habitual`); }
+    return api.updateDoc(ref(id), fields);
+  }
+  const onList = mode !== "catalogo";
+  const existing = items.find(i => norm(i.name) === norm(name));
+  if (existing){
+    await api.updateDoc(ref(existing.id), {...fields, onList: existing.onList || onList, ...(onList && !existing.onList ? stamp() : {})});
+  } else {
+    await api.addDoc(col(), {...fields, onList, lastBought: null, ...stamp()});
+  }
+  toast(onList ? `${fields.name} añadido a la lista` : `${fields.name} guardado en habituales`);
+}
+
+/* ---------- Aviso con deshacer ---------- */
+let toastTimer, undoFn;
+function toast(msg, undo){
+  $("#toast-msg").textContent = msg; undoFn = undo;
+  $("#toast-undo").hidden = !undo; $("#toast").hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $("#toast").hidden = true, undo ? 5000 : 2200);
+}
+
+/* ---------- Eventos ---------- */
+function setTab(t){
+  tab = t;
+  $("#tab-lista").hidden = t !== "lista"; $("#tab-hab").hidden = t !== "hab";
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  window.scrollTo({top: 0});
+}
+
+function onMainClick(e){
+  const go = e.target.closest("[data-go]"); if (go) return setTab(go.dataset.go);
+  const btn = e.target.closest("[data-act]"); if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === "addall"){
+    const sug = suggestions();
+    const b = api.writeBatch(db);
+    sug.forEach(i => b.update(ref(i.id), {onList: true, ...stamp()}));
+    b.commit(); return toast(`${sug.length} habituales añadidos a la lista`);
+  }
+  const li = btn.closest("li"); const item = items.find(i => i.id === li?.dataset.id); if (!item) return;
+  if (act === "buy") buy(item, li);
+  if (act === "edit") openSheet(item);
+  if (act === "add") addToList(item);
+}
+
+function wire(){
+  $("#f-cat").innerHTML = CATS.map(c => `<option value="${c.id}">${c.e} ${esc(c.n)}</option>`).join("");
+  $("main").addEventListener("click", onMainClick);
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+  $("#fab").addEventListener("click", () => openSheet(null));
+  $("#sheet-bg").addEventListener("click", closeSheet);
+  $("#sh-cancel").addEventListener("click", closeSheet);
+  $("#sheet").addEventListener("submit", save);
+  $("#f-rec").addEventListener("change", syncFreq);
+  $("#f-name").addEventListener("input", showMatches);
+  $("#f-matches").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const item = items.find(i => i.id === b.dataset.id); if (!item) return;
+    if (item.onList || $("#sheet").dataset.mode === "catalogo") return openSheet(item);
+    closeSheet(); addToList(item);
+  });
+  $("#sh-remove").addEventListener("click", async () => {
+    const item = items.find(i => i.id === editId); closeSheet(); if (!item) return;
+    if (item.recurring) await api.updateDoc(ref(item.id), {onList: false});
+    else await api.deleteDoc(ref(item.id));
+    toast(`${item.name} quitado de la lista`);
+  });
+  $("#sh-delete").addEventListener("click", async () => {
+    const item = items.find(i => i.id === editId); if (!item) return;
+    if (!confirm(`¿Borrar «${item.name}» de la lista y de habituales?`)) return;
+    closeSheet(); const {id, ...data} = item;
+    await api.deleteDoc(ref(id));
+    toast(`${item.name} borrado`, () => api.setDoc(ref(id), data));
+  });
+  $("#toast-undo").addEventListener("click", () => { undoFn?.(); $("#toast").hidden = true; });
+  $("#search").addEventListener("input", () => renderHab(suggestions()));
+  $("#btn-user").addEventListener("click", () => {
+    if (me && confirm(`Has entrado como ${me.name} (${me.email}). ¿Cerrar sesión?`)) api.signOut(auth);
+  });
+  $("#btn-google").addEventListener("click", async () => {
+    $("#login-err").textContent = "";
+    try { await api.signInWithPopup(auth, new api.GoogleAuthProvider()); }
+    catch (err) { $("#login-err").textContent = "No se pudo entrar con Google. Prueba con correo y contraseña. (" + err.code + ")"; }
+  });
+  $("#f-login").addEventListener("submit", async e => {
+    e.preventDefault(); $("#login-err").textContent = "";
+    try { await api.signInWithEmailAndPassword(auth, $("#l-email").value.trim(), $("#l-pass").value); }
+    catch { $("#login-err").textContent = "Correo o contraseña incorrectos."; }
+  });
+  const net = () => $("#offline").hidden = navigator.onLine;
+  addEventListener("online", net); addEventListener("offline", net); net();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && me) render(); });
+}
+
+wire();
+boot().catch(err => {
+  show("#v-login");
+  $("#login-err").textContent = "No se pudo cargar la app. Comprueba la conexión y vuelve a abrirla.";
+  console.error(err);
+});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
