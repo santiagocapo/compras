@@ -1,7 +1,7 @@
 // Guarda la app en el móvil para que abra aunque no haya cobertura.
 // Si cambias index.html, sube también este archivo cambiando la versión.
-const CACHE = "compra-v1";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+const CACHE = "compra-v2";
+const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));

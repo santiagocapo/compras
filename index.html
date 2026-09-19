@@ -139,6 +139,12 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
   display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:15px}
 #toast button{margin-left:auto;border:0;background:none;color:var(--lemon);font-weight:750;padding:4px}
 
+.week{display:flex;align-items:baseline;justify-content:space-between;margin:24px 2px 8px}
+.week h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.week span{color:var(--muted);font-size:14px;white-space:nowrap;margin-left:12px}
+.more{display:block;margin:18px auto 0;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 18px;font-weight:600}
+.hist-note{margin:-2px 0 12px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px;line-height:1.45;color:var(--muted)}
+.hist-note b{color:var(--ink);font-weight:650}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -146,7 +152,7 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
 
 <section id="v-config" class="screen" hidden>
   <h1>Falta un paso</h1>
-  <p>La app aún no está conectada a Firebase. Abre <strong>index.html</strong>, busca el bloque «CONFIGURACIÓN» al principio del código y pega los datos de tu proyecto y los dos correos.</p>
+  <p>No se encuentra el archivo <strong>config.js</strong> o le faltan datos. Súbelo al repositorio junto a index.html con la configuración de Firebase y los dos correos.</p>
 </section>
 
 <section id="v-login" class="screen" hidden>
@@ -176,11 +182,13 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
       <input class="search" id="search" type="search" placeholder="Buscar en habituales" autocomplete="off">
       <div id="hab-content"></div>
     </div>
+    <div id="tab-hist" hidden></div>
   </main>
   <button id="fab" aria-label="Añadir producto">+</button>
   <nav class="tabs">
     <button data-tab="lista" class="on">Lista</button>
     <button data-tab="hab">Habituales <span class="badge" id="badge" hidden></span></button>
+    <button data-tab="hist">Histórico</button>
   </nav>
 </section>
 
@@ -195,9 +203,10 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
     <label class="f">Cantidad<input id="f-qty" maxlength="20" placeholder="2, 1 kg"></label>
     <label class="f">Nota<input id="f-note" maxlength="80" placeholder="Marca, tamaño"></label>
   </div>
+  <p class="hist-note" id="f-hist" hidden></p>
   <label class="switch"><span>Producto habitual</span><input type="checkbox" id="f-rec"></label>
   <fieldset id="f-freq">
-    <legend>¿Cada cuánto suele hacer falta?</legend>
+    <legend>¿Cada cuánto suele hacer falta? A partir de la tercera compra, la app usa vuestro ritmo real.</legend>
     <div class="seg">
       <label><input type="radio" name="freq" value="semanal"><span>Semanal</span></label>
       <label><input type="radio" name="freq" value="quincenal"><span>Quincenal</span></label>
@@ -218,41 +227,9 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
 <div id="toast" hidden role="status"><span id="toast-msg"></span><button id="toast-undo">Deshacer</button></div>
 
 <script type="module">
-/* =====================  CONFIGURACIÓN  =====================
-   // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDWeQwDQQKeDEtxUGiPQN-N_Ge3HzAJY0o",
-  authDomain: "lista-de-la-compra-fd066.firebaseapp.com",
-  projectId: "lista-de-la-compra-fd066",
-  storageBucket: "lista-de-la-compra-fd066.firebasestorage.app",
-  messagingSenderId: "841838013657",
-  appId: "1:841838013657:web:8cadb0867555de9daf22c8"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-   1) Pega aquí el objeto firebaseConfig de tu proyecto
-      (Firebase > Configuración del proyecto > Tus apps > Web).
-   2) Escribe los dos correos, en minúsculas, y el nombre que se mostrará. */
-const firebaseConfig = {
-  apiKey: "AIzaSyDWeQwDQQKeDEtxUGiPQN-N_Ge3HzAJY0o",
-  authDomain: "lista-de-la-compra-fd066.firebaseapp.com",
-  projectId: "lista-de-la-compra-fd066",
-  storageBucket: "lista-de-la-compra-fd066.firebasestorage.app",
-  messagingSenderId: "841838013657",
-  appId: "1:841838013657:web:8cadb0867555de9daf22c8"
-};
-const USUARIOS = {
-  "santiagocapo@gmail.com": "Santi",
-  "olimpiamadridtaverner@gmail.com": "Olimpia"
-};
-/* =========================================================== */
+/* La configuración (Firebase y correos) está en config.js,
+   así las actualizaciones de index.html no la pisan. */
+let firebaseConfig = null, USUARIOS = {};
 
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const $ = s => document.querySelector(s);
@@ -288,14 +265,43 @@ function ago(t){
   const d = Math.floor((Date.now() - m) / DAY);
   return d <= 0 ? "comprado hoy" : d === 1 ? "comprado ayer" : `comprado hace ${d} días`;
 }
+/* Frecuencia aprendida: mediana de los intervalos entre las últimas compras.
+   Hacen falta 3 compras (2 intervalos). Se ignoran compras repetidas el mismo día. */
+function buysOf(i){
+  const b = (i.buys || []).map(ms).filter(Boolean);
+  if (!b.length && ms(i.lastBought)) b.push(ms(i.lastBought));
+  return b.sort((x, y) => x - y);
+}
+function learned(i){
+  const b = buysOf(i), gaps = [];
+  for (let k = 1; k < b.length; k++){ const g = (b[k] - b[k - 1]) / DAY; if (g >= 1) gaps.push(g); }
+  if (gaps.length < 2) return null;
+  gaps.sort((x, y) => x - y);
+  const m = gaps.length >> 1;
+  return Math.max(2, Math.round(gaps.length % 2 ? gaps[m] : (gaps[m - 1] + gaps[m]) / 2));
+}
+const intervalOf = i => learned(i) ?? FREQ[i.freq]?.d ?? null;
 function suggestions(){
-  return items.filter(i => i.recurring && !i.onList && FREQ[i.freq] && ms(i.lastBought) &&
-    (Date.now() - ms(i.lastBought)) / DAY >= FREQ[i.freq].d - 1).sort(byName);
+  return items.filter(i => {
+    if (!i.recurring || i.onList || !ms(i.lastBought)) return false;
+    const iv = intervalOf(i); if (!iv) return false;
+    return (Date.now() - ms(i.lastBought)) / DAY >= iv - 1;
+  }).sort(byName);
+}
+function rhythm(i){
+  const l = learned(i);
+  if (l) return l === 7 ? "Cada semana" : l === 14 ? "Cada 2 semanas" : `Cada ${l} días`;
+  return FREQ[i.freq]?.n || "";
 }
 
 /* ---------- Arranque ---------- */
 async function boot(){
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("PEGA")) return show("#v-config");
+  try {
+    const cfg = await import("./config.js");
+    firebaseConfig = cfg.firebaseConfig;
+    USUARIOS = Object.fromEntries(Object.entries(cfg.USUARIOS || {}).map(([k, v]) => [k.toLowerCase(), v]));
+  } catch { return show("#v-config"); }
+  if (!firebaseConfig?.apiKey || firebaseConfig.apiKey.startsWith("PEGA")) return show("#v-config");
   const [{initializeApp}, A, F] = await Promise.all([
     import(FB + "firebase-app.js"), import(FB + "firebase-auth.js"), import(FB + "firebase-firestore.js")
   ]);
@@ -374,7 +380,7 @@ function renderList(pending, sug){
 }
 
 function habRow(i){
-  const f = FREQ[i.freq] ? FREQ[i.freq].n + ", " : "";
+  const r = rhythm(i); const f = r ? r + ", " : "";
   return `<li data-id="${i.id}">
     <button class="body" data-act="edit"><span class="name">${esc(i.name)}</span>
       <span class="meta">${esc(f + ago(i.lastBought))}</span></button>
@@ -407,21 +413,34 @@ const col = () => api.collection(db, "items");
 const ref = id => api.doc(db, "items", id);
 const stamp = () => ({addedBy: me.uid, addedByName: me.name, addedAt: api.serverTimestamp()});
 
+const fail = err => { console.error(err); toast("No se pudo guardar el cambio. Revisa la conexión."); };
+const run = p => p.catch(fail);
+
 function buy(item, li){
   li.classList.add("done");
-  setTimeout(async () => {
+  setTimeout(() => {
     const {id, ...data} = item;
+    const now = Date.now();
+    const logRef = api.doc(api.collection(db, "compras"));
+    const b = api.writeBatch(db);
+    b.set(logRef, {itemId: id, name: item.name, category: item.category || "", qty: item.qty || "",
+      recurring: !!item.recurring, boughtAt: api.Timestamp.fromMillis(now), boughtBy: me.uid, boughtByName: me.name});
     if (item.recurring){
-      await api.updateDoc(ref(id), {onList: false, lastBought: api.Timestamp.now()});
-      toast(`${item.name} comprado`, () => api.updateDoc(ref(id), {onList: true, lastBought: item.lastBought ?? null}));
-    } else {
-      await api.deleteDoc(ref(id));
-      toast(`${item.name} comprado`, () => api.setDoc(ref(id), data));
-    }
+      b.update(ref(id), {onList: false, lastBought: api.Timestamp.fromMillis(now), buys: [...buysOf(item), now].slice(-8)});
+    } else b.delete(ref(id));
+    run(b.commit());
+    toast(`${item.name} comprado`, () => {
+      const u = api.writeBatch(db);
+      u.delete(logRef);
+      if (item.recurring) u.update(ref(id), {onList: true, lastBought: item.lastBought ?? null, buys: item.buys ?? null});
+      else u.set(ref(id), data);
+      run(u.commit());
+      if (tab === "hist") loadHistory(true);
+    });
   }, 380);
 }
 function addToList(item){
-  api.updateDoc(ref(item.id), {onList: true, ...stamp()});
+  run(api.updateDoc(ref(item.id), {onList: true, ...stamp()}));
   toast(`${item.name} añadido a la lista`);
 }
 
@@ -443,10 +462,21 @@ function openSheet(item){
   document.querySelector(`input[name="freq"][value="${item?.freq || ""}"]`).checked = true;
   syncFreq();
   $("#f-matches").innerHTML = "";
+  const note = item?.recurring ? histNote(item) : "";
+  $("#f-hist").hidden = !note; $("#f-hist").innerHTML = note;
   $("#sh-danger").hidden = !item;
   $("#sh-remove").hidden = !item?.onList;
   $("#sheet-bg").classList.add("open"); $("#sheet").classList.add("open");
   if (!item) setTimeout(() => $("#f-name").focus(), 260);
+}
+function histNote(i){
+  const b = buysOf(i).slice(-4).reverse();
+  if (!b.length) return "Aún no se ha comprado. Con tres compras, la app calculará cada cuánto os hace falta.";
+  const fechas = b.map(t => new Date(t).toLocaleDateString("es-ES", {day: "numeric", month: "short"})).join(", ");
+  const l = learned(i);
+  return `<b>Últimas compras:</b> ${esc(fechas)}.<br>` + (l
+    ? `Según vuestras compras, os hace falta <b>cada ${l} días</b> y así se calculan las sugerencias.`
+    : "Con tres compras, la app calculará cada cuánto os hace falta.");
 }
 function closeSheet(){
   $("#sheet-bg").classList.remove("open"); $("#sheet").classList.remove("open");
@@ -477,15 +507,15 @@ async function save(e){
 
   if (mode === "edit"){
     const item = items.find(i => i.id === id); if (!item) return;
-    if (!recurring && !item.onList){ await api.deleteDoc(ref(id)); return toast(`${fields.name} ya no es habitual`); }
-    return api.updateDoc(ref(id), fields);
+    if (!recurring && !item.onList){ run(api.deleteDoc(ref(id))); return toast(`${fields.name} ya no es habitual`); }
+    return run(api.updateDoc(ref(id), fields));
   }
   const onList = mode !== "catalogo";
   const existing = items.find(i => norm(i.name) === norm(name));
   if (existing){
-    await api.updateDoc(ref(existing.id), {...fields, onList: existing.onList || onList, ...(onList && !existing.onList ? stamp() : {})});
+    run(api.updateDoc(ref(existing.id), {...fields, onList: existing.onList || onList, ...(onList && !existing.onList ? stamp() : {})}));
   } else {
-    await api.addDoc(col(), {...fields, onList, lastBought: null, ...stamp()});
+    run(api.addDoc(col(), {...fields, onList, lastBought: null, ...stamp()}));
   }
   toast(onList ? `${fields.name} añadido a la lista` : `${fields.name} guardado en habituales`);
 }
@@ -498,10 +528,82 @@ function toast(msg, undo){
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $("#toast").hidden = true, undo ? 5000 : 2200);
 }
 
+/* ---------- Histórico (se lee solo al abrir la pestaña, por tramos) ---------- */
+const PAGE = 60;
+let hist = [], histCursor = null, histEnd = false, histLoading = false;
+
+async function loadHistory(reset){
+  if (histLoading || !api.getDocs) return;
+  histLoading = true;
+  if (reset){ hist = []; histCursor = null; histEnd = false; $("#tab-hist").innerHTML = `<div class="empty">Cargando…</div>`; }
+  try {
+    const {query, collection, orderBy, limit, startAfter, getDocs} = api;
+    const parts = [collection(db, "compras"), orderBy("boughtAt", "desc")];
+    if (histCursor) parts.push(startAfter(histCursor));
+    parts.push(limit(PAGE));
+    const snap = await getDocs(query(...parts));
+    hist.push(...snap.docs.map(d => ({id: d.id, ...d.data()})));
+    if (snap.docs.length) histCursor = snap.docs[snap.docs.length - 1];
+    histEnd = snap.docs.length < PAGE;
+    renderHist();
+  } catch (err) {
+    console.error(err);
+    $("#tab-hist").innerHTML = `<div class="empty"><b>No se puede leer el histórico</b>${err.code === "permission-denied"
+      ? "Falta añadir la colección «compras» en las reglas de Firestore." : "Revisa la conexión y vuelve a abrir esta pestaña."}</div>`;
+  } finally { histLoading = false; }
+}
+
+function weekStart(t){
+  const d = new Date(t); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+}
+function weekLabel(start){
+  const now = weekStart(Date.now());
+  if (start === now) return "Esta semana";
+  if (start === now - 7 * DAY) return "Semana pasada";
+  const a = new Date(start), b = new Date(start + 6 * DAY);
+  const f = o => new Intl.DateTimeFormat("es-ES", o);
+  return a.getMonth() === b.getMonth()
+    ? `Del ${a.getDate()} al ${b.getDate()} de ${f({month: "long"}).format(b)}`
+    : `Del ${f({day: "numeric", month: "long"}).format(a)} al ${f({day: "numeric", month: "long"}).format(b)}`;
+}
+
+function renderHist(){
+  if (!hist.length){
+    $("#tab-hist").innerHTML = `<div class="empty"><b>Aún no hay compras registradas</b>Cada producto que marquéis como comprado aparecerá aquí, agrupado por semanas.</div>`;
+    return;
+  }
+  const weeks = new Map();
+  for (const h of hist){
+    const w = weekStart(ms(h.boughtAt) || Date.now());
+    if (!weeks.has(w)) weeks.set(w, []);
+    weeks.get(w).push(h);
+  }
+  const day = new Intl.DateTimeFormat("es-ES", {weekday: "long", day: "numeric"});
+  let html = "";
+  for (const [w, list] of weeks){
+    html += `<div class="week"><h2>${esc(weekLabel(w))}</h2><span>${list.length} ${list.length === 1 ? "producto" : "productos"}</span></div><ul>` +
+      list.map(h => {
+        const cat = catOf(h.category);
+        return `<li data-item="${esc(h.itemId || "")}">
+          <span aria-hidden="true">${cat.e}</span>
+          <button class="body" data-act="hist"><span class="name">${esc(h.name)}</span>${h.qty ? `<span class="qty">${esc(h.qty)}</span>` : ""}
+            <span class="meta">${esc(day.format(new Date(ms(h.boughtAt) || Date.now())))}</span></button>
+          ${h.boughtByName ? `<span class="who">${esc(h.boughtByName)}</span>` : ""}
+        </li>`;
+      }).join("") + `</ul>`;
+  }
+  if (!histEnd) html += `<button class="more" data-act="more">Ver compras anteriores</button>`;
+  $("#tab-hist").innerHTML = html;
+}
+
 /* ---------- Eventos ---------- */
 function setTab(t){
   tab = t;
-  $("#tab-lista").hidden = t !== "lista"; $("#tab-hab").hidden = t !== "hab";
+  $("#tab-lista").hidden = t !== "lista"; $("#tab-hab").hidden = t !== "hab"; $("#tab-hist").hidden = t !== "hist";
+  $("#fab").hidden = t === "hist";
+  if (t === "hist") loadHistory(true);
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
   window.scrollTo({top: 0});
 }
@@ -514,7 +616,12 @@ function onMainClick(e){
     const sug = suggestions();
     const b = api.writeBatch(db);
     sug.forEach(i => b.update(ref(i.id), {onList: true, ...stamp()}));
-    b.commit(); return toast(`${sug.length} habituales añadidos a la lista`);
+    run(b.commit()); return toast(`${sug.length} habituales añadidos a la lista`);
+  }
+  if (act === "more") return loadHistory(false);
+  if (act === "hist"){
+    const it = items.find(i => i.id === btn.closest("li")?.dataset.item);
+    return it ? openSheet(it) : toast("Este producto ya no está en la lista ni en habituales");
   }
   const li = btn.closest("li"); const item = items.find(i => i.id === li?.dataset.id); if (!item) return;
   if (act === "buy") buy(item, li);
@@ -540,16 +647,15 @@ function wire(){
   });
   $("#sh-remove").addEventListener("click", async () => {
     const item = items.find(i => i.id === editId); closeSheet(); if (!item) return;
-    if (item.recurring) await api.updateDoc(ref(item.id), {onList: false});
-    else await api.deleteDoc(ref(item.id));
+    run(item.recurring ? api.updateDoc(ref(item.id), {onList: false}) : api.deleteDoc(ref(item.id)));
     toast(`${item.name} quitado de la lista`);
   });
   $("#sh-delete").addEventListener("click", async () => {
     const item = items.find(i => i.id === editId); if (!item) return;
     if (!confirm(`¿Borrar «${item.name}» de la lista y de habituales?`)) return;
     closeSheet(); const {id, ...data} = item;
-    await api.deleteDoc(ref(id));
-    toast(`${item.name} borrado`, () => api.setDoc(ref(id), data));
+    run(api.deleteDoc(ref(id)));
+    toast(`${item.name} borrado`, () => run(api.setDoc(ref(id), data)));
   });
   $("#toast-undo").addEventListener("click", () => { undoFn?.(); $("#toast").hidden = true; });
   $("#search").addEventListener("input", () => renderHab(suggestions()));
