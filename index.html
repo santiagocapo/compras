@@ -142,6 +142,8 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
 .week{display:flex;align-items:baseline;justify-content:space-between;margin:24px 2px 8px}
 .week h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
 .week span{color:var(--muted);font-size:14px;white-space:nowrap;margin-left:12px}
+.del{width:34px;height:34px;border-radius:50%;border:0;background:none;color:var(--muted);font-size:22px;line-height:1;flex:none;padding:0}
+.del:active{background:var(--bg);color:var(--danger)}
 .more{display:block;margin:18px auto 0;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 18px;font-weight:600}
 .hist-note{margin:-2px 0 12px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px;line-height:1.45;color:var(--muted)}
 .hist-note b{color:var(--ink);font-weight:650}
@@ -553,6 +555,34 @@ async function loadHistory(reset){
   } finally { histLoading = false; }
 }
 
+/* Borra un registro del histórico y lo descuenta del ritmo aprendido del producto. */
+function deleteHist(h){
+  const t = ms(h.boughtAt);
+  const it = items.find(i => i.id === h.itemId);
+  const hRef = api.doc(db, "compras", h.id);
+  const b = api.writeBatch(db);
+  b.delete(hRef);
+  let prev = null;
+  if (it?.recurring && t){
+    const rest = buysOf(it).filter(x => x !== t);
+    prev = {buys: it.buys ?? null, lastBought: it.lastBought ?? null};
+    const upd = {buys: rest};
+    if (ms(it.lastBought) === t) upd.lastBought = rest.length ? api.Timestamp.fromMillis(rest[rest.length - 1]) : null;
+    b.update(ref(it.id), upd);
+  }
+  run(b.commit());
+  hist = hist.filter(x => x.id !== h.id);
+  renderHist();
+  toast(`${h.name} borrado del histórico`, () => {
+    const {id, ...data} = h;
+    const u = api.writeBatch(db);
+    u.set(hRef, data);
+    if (prev) u.update(ref(it.id), prev);
+    run(u.commit());
+    loadHistory(true);
+  });
+}
+
 function weekStart(t){
   const d = new Date(t); d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -586,11 +616,12 @@ function renderHist(){
     html += `<div class="week"><h2>${esc(weekLabel(w))}</h2><span>${list.length} ${list.length === 1 ? "producto" : "productos"}</span></div><ul>` +
       list.map(h => {
         const cat = catOf(h.category);
-        return `<li data-item="${esc(h.itemId || "")}">
+        return `<li data-item="${esc(h.itemId || "")}" data-hid="${esc(h.id)}">
           <span aria-hidden="true">${cat.e}</span>
           <button class="body" data-act="hist"><span class="name">${esc(h.name)}</span>${h.qty ? `<span class="qty">${esc(h.qty)}</span>` : ""}
             <span class="meta">${esc(day.format(new Date(ms(h.boughtAt) || Date.now())))}</span></button>
           ${h.boughtByName ? `<span class="who">${esc(h.boughtByName)}</span>` : ""}
+          <button class="del" data-act="hdel" aria-label="Borrar ${esc(h.name)} del histórico">×</button>
         </li>`;
       }).join("") + `</ul>`;
   }
@@ -619,6 +650,10 @@ function onMainClick(e){
     run(b.commit()); return toast(`${sug.length} habituales añadidos a la lista`);
   }
   if (act === "more") return loadHistory(false);
+  if (act === "hdel"){
+    const h = hist.find(x => x.id === btn.closest("li")?.dataset.hid);
+    return h && deleteHist(h);
+  }
   if (act === "hist"){
     const it = items.find(i => i.id === btn.closest("li")?.dataset.item);
     return it ? openSheet(it) : toast("Este producto ya no está en la lista ni en habituales");
