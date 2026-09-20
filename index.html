@@ -55,6 +55,10 @@ button{cursor:pointer}
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .top h1{margin:0;font-size:34px;line-height:1;font-weight:800;letter-spacing:-.02em}
 .top p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.top-acc{display:flex;align-items:center;gap:8px;flex:none}
+.ir-app{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+        display:grid;place-items:center;flex:none}
+.ir-app svg{width:20px;height:20px}
 .avatar{width:40px;height:40px;border-radius:50%;border:0;background:var(--green);color:var(--on-green);font-weight:750;font-size:17px;flex:none}
 .offline{margin:0 20px 8px;padding:8px 12px;border-radius:10px;background:var(--lemon-soft);font-size:14px}
 
@@ -175,7 +179,11 @@ legend{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px}
 <section id="v-main" hidden>
   <header class="top">
     <div><h1 id="title">La compra</h1><p id="subtitle"></p></div>
-    <button class="avatar" id="btn-user" aria-label="Cuenta"></button>
+    <div class="top-acc">
+      <a class="ir-app" id="btn-calendario" hidden aria-label="Abrir el calendario" title="Calendario">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></a>
+      <button class="avatar" id="btn-user" aria-label="Cuenta"></button>
+    </div>
   </header>
   <div class="offline" id="offline" hidden>Sin conexión. Los cambios se guardan en el móvil y se sincronizan al volver.</div>
   <main>
@@ -302,6 +310,7 @@ async function boot(){
     const cfg = await import("./config.js");
     firebaseConfig = cfg.firebaseConfig;
     USUARIOS = Object.fromEntries(Object.entries(cfg.USUARIOS || {}).map(([k, v]) => [k.toLowerCase(), v]));
+    if (cfg.APPS?.calendario) { $("#btn-calendario").href = cfg.APPS.calendario; $("#btn-calendario").hidden = false; }
   } catch { return show("#v-config"); }
   if (!firebaseConfig?.apiKey || firebaseConfig.apiKey.startsWith("PEGA")) return show("#v-config");
   const [{initializeApp}, A, F] = await Promise.all([
