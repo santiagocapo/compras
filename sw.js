@@ -1,6 +1,8 @@
 // Guarda la app en el móvil para que abra aunque no haya cobertura.
-// Si cambias index.html, sube también este archivo cambiando la versión.
-const CACHE = "compra-v2";
+// Los archivos de la app se piden siempre a la red (sin usar la copia temporal del navegador),
+// así que al subir un index.html nuevo llega solo. Solo hay que subir la versión de CACHE
+// cuando se añada un archivo nuevo a la lista SHELL.
+const CACHE = "compra-v3";
 const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -17,8 +19,9 @@ self.addEventListener("fetch", e => {
   const put = res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return res; };
 
   if (url.origin === location.origin) {
-    // Primero la red (para recibir mejoras); si no hay, lo guardado.
-    e.respondWith(fetch(e.request).then(put).catch(() =>
+    // Primero la red, saltándose la copia temporal del navegador (para recibir mejoras);
+    // si no hay cobertura, lo guardado.
+    e.respondWith(fetch(e.request, { cache: "no-cache" }).then(put).catch(() =>
       caches.match(e.request).then(r => r || caches.match("./index.html"))));
   } else if ((url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/")) ||
              url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
