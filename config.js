@@ -19,5 +19,6 @@ export const USUARIOS = {
 // Direcciones de las dos apps, para saltar de una a otra con un botón.
 export const APPS = {
   compra: "https://santiagocapo.github.io/compras/",
-  calendario: "https://santiagocapo.github.io/calendario/"
+  calendario: "https://santiagocapo.github.io/calendario/",
+  recetas: "https://santiagocapo.github.io/recetas/"
 };
